@@ -1,15 +1,17 @@
 autowatch = 1;
 
-inlets = 4;
-outlets = 2;
+inlets = 5;
+outlets = 3;
 
 setinletassist( 0, "Grid Input" );
 setinletassist( 1, "Matrix Input" );
 setinletassist( 2, "Variable Brightness" );
 setinletassist( 3, "Init" );
+setinletassist( 4, "Live Observed" );
 
 setoutletassist( 0, "Grid Output" );
 setoutletassist( 1, "Matrix Output" );
+setoutletassist( 2, "Update Clips" );
 
 
 // Constants
@@ -32,12 +34,6 @@ var varibright = 1;
 
 var ledArray = 0;
 
-var liveApiTracks = 0;
-var liveApiScenes = 0;
-var liveApiTrackPlayingSlotIndexArray = 0;
-var liveApiTrackFiredSlotIndexArray = 0;
-var liveApiTrackClipSlotsArray = 0;
-var liveApiDetailClip = 0;
 var liveApiNonObserving = 0;
 
 var numberOfTracks = 0;
@@ -85,46 +81,6 @@ function init() {
 		}
 	}
 
-	// Monitor state of each track
-	if( !liveApiTrackPlayingSlotIndexArray.length ) {
-		
-		liveApiTrackPlayingSlotIndexArray = new Array();
-		liveApiTrackFiredSlotIndexArray = new Array();
-		liveApiTrackClipSlotsArray = new Array();
-		for( var i = 0; i < MAX_TRACKS; i ++ ) {
-
-			var liveApiTrackPlayingSlotIndex = new LiveAPI( liveApiTrackPlayingSlotIndexCallback, "live_set visible_tracks " + ( i + scrollOffsetX ) );
-			liveApiTrackPlayingSlotIndex.property = "playing_slot_index";
-			liveApiTrackPlayingSlotIndexArray.mode = 1;
-			liveApiTrackPlayingSlotIndexArray[i] = liveApiTrackPlayingSlotIndex;
-
-			var liveApiTrackFiredSlotIndex = new LiveAPI( liveApiTrackFiredSlotIndexCallback, "live_set visible_tracks " + ( i + scrollOffsetX ) );
-			liveApiTrackFiredSlotIndex.property = "fired_slot_index";
-			liveApiTrackFiredSlotIndex.mode = 1;
-			liveApiTrackFiredSlotIndexArray[i] = liveApiTrackFiredSlotIndex;
-
-			var liveApiTrackClipSlots = new LiveAPI( liveApiTrackClipSlotsCallback, "live_set visible_tracks " + ( i + scrollOffsetX ) );
-			liveApiTrackClipSlots.mode = 1;
-			liveApiTrackClipSlotsArray[i] = liveApiTrackClipSlots;
-		}
-	}
-
-	// Monitor number of tracks and scenes
-	liveApiTracks = new LiveAPI( liveApiTracksCallback, "live_set" );
-	numberOfTracks = liveApiTracks.getcount( "tracks" );
-	liveApiTracks.property = "tracks";
-	liveApiTracks.mode = 1;
-	
-	liveApiScenes = new LiveAPI( liveApiScenesCallback, "live_set" );
-	numberOfScenes = liveApiScenes.getcount( "scenes" );
-	liveApiScenes.property = "scenes";
-	liveApiScenes.mode = 1;
-
-	// Monitor the focused clip
-	liveApiDetailClip = new LiveAPI( liveApiDetailClipCallback, "live_set view" );
-	liveApiDetailClip.property = "detail_clip";
-	liveApiDetailClip.mode = 1;
-
 	// Live API for controlling Live etc
 	liveApiNonObserving = new LiveAPI();
 
@@ -137,8 +93,6 @@ function init() {
 }
 
 function anything() {
-
-	// liveAPI = new LiveAPI( liveAPICallback, "live_set visible_tracks" );
 
 	// Post all input
 	// post( "clips.js inlet:", inlet, messagename );
@@ -196,37 +150,101 @@ function anything() {
 	// Init
 	} else if( inlet == 3 ) {
 		init();
+	
+	// Live Observed
+	} else if( inlet == 4 ) {
+		
+		if( messagename === "tracks" ) {
+			updateNumberOfTracks( arguments[0] );
+
+		} else if( messagename === "scenes" ) {
+
+			updateNumberOfScenes( arguments[0] );
+
+		} else if( messagename === "detail_clip_changed" ) {
+
+			updateClips();
+
+		} else if( messagename === "track" ) {
+
+			if( arguments[1] === "playing" ) {
+				updatePlayingSlotIndex( arguments[0], arguments[2] );
+
+			} else if( arguments[1] === "fired" ) {
+				updateFiredSlotIndex( arguments[0], arguments[2] );
+
+			} else if( arguments[1] === "clip_slots" ) {
+
+				for( var i = 3; i < arguments.length; i ++ ) {
+					clipsArray[arguments[0]][i - 3] = arguments[i];
+				}
+				redrawIsDirty = 1;
+
+			}
+		}
+
 	}
 }
 
 
 // Private
 
+updateNumberOfTracks.local = 1;
+function updateNumberOfTracks( tracks ) {
+	
+	numberOfTracks = tracks;
+	post( "Number of tracks:", numberOfTracks, "\n" );
+
+	// TODO need to update track observer paths here??
+
+	updateClips();
+}
+
+updateNumberOfScenes.local = 1;
+function updateNumberOfScenes( scenes ) {
+
+	numberOfScenes = scenes;
+	post( "Number of scenes:", numberOfScenes, "\n" );
+
+	updateClips();
+}
+
+updatePlayingSlotIndex.local = 1;
+function updatePlayingSlotIndex( trackIndex, slotIndex ) {
+
+	// First slot has index 0, -2 = track stopped, -1 = arranger recording with no session clip playing
+
+	if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
+		playingSlotIndexArray[trackIndex - scrollOffsetX] = slotIndex;
+	}
+
+	redrawIsDirty = 1;
+}
+
+updateFiredSlotIndex.local = 1;
+function updateFiredSlotIndex( trackIndex, slotIndex ) {
+
+	// First slot has index 0, -1 = no slot fired, -2 = track stop button fired
+	
+	if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
+		firedSlotIndexArray[trackIndex - scrollOffsetX] = slotIndex;
+	}
+
+	redrawIsDirty = 1;
+}
+
 updateClips.local = 1;
 function updateClips() {
 
-	// readClipSlots();
-	readPlayingSlotIndexes();
-	readFiredSlotIndexes();
+	readClipSlots();
+	// readPlayingSlotIndexes();
+	// readFiredSlotIndexes();
 }
 
 readClipSlots.local = 1;
 function readClipSlots() {
 
-	for( var x = 0; x < MAX_TRACKS; x ++ ) {
-
-		for( var y = 0; y < MAX_SCENES; y ++ ) {
-
-			if( x + scrollOffsetX < numberOfTracks && y + scrollOffsetY < numberOfScenes ) {
-				liveApiTrackClipSlotsArray[x].path = "live_set visible_tracks " + ( x + scrollOffsetX ) + " clip_slots " + ( y + scrollOffsetY );
-				clipsArray[x][y] = liveApiTrackClipSlotsArray[x].get( "has_clip" );
-			} else {
-				clipsArray[x][y] = 0;
-			}
-		}
-	}
-
-	redrawIsDirty = 1;
+	outlet( 2, numberOfTracks ); // Send numberOfTracks so as to not mess with APIs outside of that
 
 }
 
@@ -582,90 +600,5 @@ function drawGrid() {
 		    outlet( 0, oscAddress, 8 * i, 8 * j, mapArray );
         }
     }
-
-}
-
-
-// Callbacks
-
-liveApiTracksCallback.local = 1;
-function liveApiTracksCallback( args ) {
-	
-	if( !liveApiTracks ) {
-		return;
-	}
-
-	numberOfTracks = liveApiTracks.getcount( "tracks" );
-	post( "Number of tracks:", numberOfTracks, "\n" );
-
-	for( var i = 0; i < MAX_TRACKS; i ++ ) {
-		liveApiTrackPlayingSlotIndexArray[i].path = "live_set visible_tracks " + ( i + scrollOffsetX );
-		liveApiTrackFiredSlotIndexArray[i].path = "live_set visible_tracks " + ( i + scrollOffsetX );
-		liveApiTrackClipSlotsArray[i].path = "live_set visible_tracks " + ( i + scrollOffsetX );
-	}
-
-	updateClips();
-}
-
-liveApiScenesCallback.local = 1;
-function liveApiScenesCallback( args ) {
-	
-	if( !liveApiScenes ) {
-		return;
-	}
-
-	numberOfScenes = liveApiScenes.getcount( "scenes" );
-	post( "Number of scenes:", numberOfScenes, "\n" );
-
-	updateClips();
-}
-
-liveApiDetailClipCallback.local = 1;
-function liveApiDetailClipCallback( args ) {
-
-	// Args includes the ID of the highlighted clip, 0 if none, seems to not send anything if none and last focus was also none
-	// post( "ID", args[2], "\n" );
-
-	updateClips();
-}
-
-liveApiTrackPlayingSlotIndexCallback.local = 1;
-function liveApiTrackPlayingSlotIndexCallback( args ) {
-
-	// First slot has index 0, -2 = track stopped, -1 = arranger recording with no session clip playing
-	
-	// post( "Track", this.unquotedpath.split( " " )[2], args, "\n" );
-	
-	if( args[0] === "playing_slot_index" ) {
-		var trackIndex = this.unquotedpath.split( " " )[2];
-		if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
-			playingSlotIndexArray[trackIndex - scrollOffsetX] = args[1];
-		}
-	}
-
-	redrawIsDirty = 1;
-}
-
-liveApiTrackFiredSlotIndexCallback.local = 1;
-function liveApiTrackFiredSlotIndexCallback( args ) {
-
-	// First slot has index 0, -1 = no slot fired, -2 = track stop button fired
-	
-	// post( "Track", this.unquotedpath.split( " " )[2], args, "\n" );
-
-	if( args[0] === "fired_slot_index" ) {
-		var trackIndex = this.unquotedpath.split( " " )[2];
-		if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
-			firedSlotIndexArray[trackIndex - scrollOffsetX] = args[1];
-		}
-	}
-
-	redrawIsDirty = 1;
-}
-
-liveApiTrackClipSlotsCallback.local = 1;
-function liveApiTrackClipSlotsCallback( args ) {
-
-	// Seems like this only gets called when number of tracks changes so not really useful
 
 }
