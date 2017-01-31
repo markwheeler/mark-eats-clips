@@ -203,19 +203,25 @@ function anything() {
 updateNumberOfTracks.local = 1;
 function updateNumberOfTracks( tracks ) {
 	
-	numberOfTracks = tracks;
-	post( "Number of tracks:", numberOfTracks, "\n" );
+	if( numberOfTracks != tracks ) {
 
-	updateClips();
+		numberOfTracks = tracks;
+		post( "Number of tracks:", numberOfTracks, "\n" );
+
+		updateClips();
+	}
 }
 
 updateNumberOfScenes.local = 1;
 function updateNumberOfScenes( scenes ) {
 
-	numberOfScenes = scenes;
-	post( "Number of scenes:", numberOfScenes, "\n" );
+	if( numberOfScenes != scenes ) {
 
-	updateClips();
+		numberOfScenes = scenes;
+		post( "Number of scenes:", numberOfScenes, "\n" );
+
+		updateClips();
+	}
 }
 
 updatePlayingSlotIndex.local = 1;
@@ -506,7 +512,7 @@ function drawGrid() {
 				ledValue = 15;
 
 			// Draw clips
-			} else if( x < MAX_TRACKS && y < gridHeight - 2 ) {
+			} else if( x < MAX_TRACKS && x < numberOfTracks - scrollOffsetX && y < gridHeight - 2 ) {
 
 				// Playing clip
 				if( playingSlotIndexArray[x] == y + scrollOffsetY ) {
