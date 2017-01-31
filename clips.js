@@ -40,6 +40,7 @@ var numberOfTracks = 0;
 var numberOfScenes = 0;
 var playingSlotIndexArray = 0;
 var firedSlotIndexArray = 0;
+var levelArray = 0;
 var clipsArray = 0;
 
 var keyDownArray = 0;
@@ -71,6 +72,7 @@ function init() {
 	// Init track arrays
 	playingSlotIndexArray = new Array( MAX_TRACKS );
 	firedSlotIndexArray = new Array( MAX_TRACKS );
+	levelArray = new Array( MAX_TRACKS );
 	clipsArray = new Array( MAX_TRACKS );
 	for( var x = 0; x < MAX_TRACKS; x ++ ) {
 		playingSlotIndexArray[x] = -2;
@@ -173,11 +175,20 @@ function anything() {
 			} else if( arguments[1] === "fired" ) {
 				updateFiredSlotIndex( arguments[0], arguments[2] );
 
-			} else if( arguments[1] === "clip_slots" ) {
+			} else if( arguments[1] === "level" ) {
+				updateLevel( arguments[0], arguments[2] );
 
-				for( var i = 3; i < arguments.length; i ++ ) {
-					clipsArray[arguments[0]][i - 3] = arguments[i];
+			} else if( arguments[1] === "clip_slots" ) {
+				
+				var iOffset = 3;// + scrollOffsetY;
+				for( var i = 0; i < MAX_SCENES; i ++ ) {
+					var clip = 0;
+					if( i + iOffset < arguments.length ) {
+						clip = arguments[i + iOffset];
+					}
+					clipsArray[arguments[0]][i] = clip;
 				}
+
 				redrawIsDirty = 1;
 
 			}
@@ -194,8 +205,6 @@ function updateNumberOfTracks( tracks ) {
 	
 	numberOfTracks = tracks;
 	post( "Number of tracks:", numberOfTracks, "\n" );
-
-	// TODO need to update track observer paths here??
 
 	updateClips();
 }
@@ -233,6 +242,16 @@ function updateFiredSlotIndex( trackIndex, slotIndex ) {
 	redrawIsDirty = 1;
 }
 
+updateLevel.local = 1;
+function updateLevel( trackIndex, level ) {
+
+	if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
+		levelArray[trackIndex - scrollOffsetX] = level;
+	}
+
+	redrawIsDirty = 1;
+}
+
 updateClips.local = 1;
 function updateClips() {
 
@@ -244,41 +263,41 @@ function updateClips() {
 readClipSlots.local = 1;
 function readClipSlots() {
 
-	outlet( 2, numberOfTracks ); // Send numberOfTracks so as to not mess with APIs outside of that
+	outlet( 2, numberOfTracks, scrollOffsetY ); // Send numberOfTracks so as to not mess with APIs outside of that
 
 }
 
-readPlayingSlotIndexes.local = 1;
-function readPlayingSlotIndexes() {
+// readPlayingSlotIndexes.local = 1;
+// function readPlayingSlotIndexes() {
 
-	for( var x = 0; x < MAX_TRACKS; x ++ ) {
+// 	for( var x = 0; x < MAX_TRACKS; x ++ ) {
 
-		if( x + scrollOffsetX < numberOfTracks ) {
-			liveApiTrackPlayingSlotIndexArray[x].path = "live_set visible_tracks " + ( x + scrollOffsetX );
-			playingSlotIndexArray[x] = liveApiTrackPlayingSlotIndexArray[x].get( "playing_slot_index" );
-		} else {
-			playingSlotIndexArray[x] = -2;
-		}
-	}
+// 		if( x + scrollOffsetX < numberOfTracks ) {
+// 			liveApiTrackPlayingSlotIndexArray[x].path = "live_set visible_tracks " + ( x + scrollOffsetX );
+// 			playingSlotIndexArray[x] = liveApiTrackPlayingSlotIndexArray[x].get( "playing_slot_index" );
+// 		} else {
+// 			playingSlotIndexArray[x] = -2;
+// 		}
+// 	}
 
-	redrawIsDirty = 1;
-}
+// 	redrawIsDirty = 1;
+// }
 
-readFiredSlotIndexes.local = 1;
-function readFiredSlotIndexes() {
+// readFiredSlotIndexes.local = 1;
+// function readFiredSlotIndexes() {
 
-	for( var x = 0; x < MAX_TRACKS; x ++ ) {
+// 	for( var x = 0; x < MAX_TRACKS; x ++ ) {
 
-		if( x + scrollOffsetX < numberOfTracks ) {
-			liveApiTrackFiredSlotIndexArray[x].path = "live_set visible_tracks " + ( x + scrollOffsetX );
-			firedSlotIndexArray[x] = liveApiTrackFiredSlotIndexArray[x].get( "fired_slot_index" );
-		} else {
-			firedSlotIndexArray[x] = -1;
-		}
-	}
+// 		if( x + scrollOffsetX < numberOfTracks ) {
+// 			liveApiTrackFiredSlotIndexArray[x].path = "live_set visible_tracks " + ( x + scrollOffsetX );
+// 			firedSlotIndexArray[x] = liveApiTrackFiredSlotIndexArray[x].get( "fired_slot_index" );
+// 		} else {
+// 			firedSlotIndexArray[x] = -1;
+// 		}
+// 	}
 
-	redrawIsDirty = 1;
-}
+// 	redrawIsDirty = 1;
+// }
 
 
 keyPress.local = 1;
@@ -474,14 +493,13 @@ function drawGrid() {
 	var fastBeatPulse = 1.0 - ( currentSongBeat % 1 );
 	var slowBeatPulse = 1.0 - ( ( currentSongBeat * 0.5 ) % 1 );
 
+	var vuMeterRange = gridHeight - 2;
+
 	// Update led array
 	for( var x = 0; x < gridWidth; x ++ ) {
 		for( var y = 0; y < gridHeight; y ++ ) {
 
 			var ledValue = 0;
-
-			// if( keyDownArray[x][y] != 0 )
-			// 	post( "DOWN", keyDownArray[x][y], "\n" );
 
 			// Currently down keys
 			if( keyDownArray[x][y] == 1 ) {
@@ -501,6 +519,13 @@ function drawGrid() {
 				// Stopped clip
 				} else if( clipsArray[x][y] == 1 ) {
 					ledValue = 8;
+
+				// Draw VU meters
+				} else {
+					var vuMeterHeight = Math.round( Math.pow( levelArray[x], 2 ) * vuMeterRange ); // Used pow to put a curve on the meter
+					if( vuMeterRange - vuMeterHeight < y + 1 ) {
+						ledValue = 2;
+					}
 				}
 			
 			// Draw track stops
