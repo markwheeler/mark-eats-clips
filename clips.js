@@ -38,6 +38,7 @@ var liveApiNonObserving = 0;
 
 var numberOfTracks = 0;
 var numberOfScenes = 0;
+var metronomeState = 0;
 var playingSlotIndexArray = 0;
 var firedSlotIndexArray = 0;
 var levelArray = 0;
@@ -163,6 +164,10 @@ function anything() {
 
 			updateNumberOfScenes( arguments[0] );
 
+		} else if( messagename === "metronome" ) {
+
+			updateMetronome( arguments[0] );
+
 		} else if( messagename === "detail_clip_changed" ) {
 
 			updateClips();
@@ -222,6 +227,12 @@ function updateNumberOfScenes( scenes ) {
 
 		updateClips();
 	}
+}
+
+updateMetronome.local = 1;
+function updateMetronome( state ) {
+
+	metronomeState = state;
 }
 
 updatePlayingSlotIndex.local = 1;
@@ -355,25 +366,25 @@ function keyPress( x, y, down ) {
 		// Bottom row
 		if( y == gridHeight - 1 ) {
 
-			// BPM down
+			// Tap tempo
 			if( x == 0 ) {
+				
+				liveApiNonObserving.path = "live_set";
+				liveApiNonObserving.call( "tap_tempo" );
+				
+			// BPM down
+			} else if( x == 1 ) {
 
 				liveApiNonObserving.path = "live_set";
 				var tempo = Math.round( parseFloat( liveApiNonObserving.get( "tempo" ) ) );
 				liveApiNonObserving.set( "tempo", tempo - 1 );
 
 			// BPM up
-			} else if( x == 1 ) {
+			} else if( x == 2 ) {
 
 				liveApiNonObserving.path = "live_set";
 				var tempo = Math.round( parseFloat( liveApiNonObserving.get( "tempo" ) ) );
 				liveApiNonObserving.set( "tempo", tempo + 1 );
-
-			// Tap tempo
-			} else if( x == 2 ) {
-				
-				liveApiNonObserving.path = "live_set";
-				liveApiNonObserving.call( "tap_tempo" );
 
 			// Metronome
 			} else if( x == 3 ) {
@@ -553,6 +564,14 @@ function drawGrid() {
 			} else if( x == gridWidth - 1 && y == gridHeight - 2 ) {
 
 				ledValue = 3;
+
+			// Draw bottom row
+			} else if( y == gridHeight - 1 ) {
+
+				// Metronome
+				if( x == 3 && metronomeState ) {
+					ledValue = Math.round( 15.0 * fastBeatPulse );
+				}
 			}
 
 			ledArray[x][y] = ledValue;
