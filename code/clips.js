@@ -1,13 +1,14 @@
 autowatch = 1;
 
-inlets = 5;
+inlets = 6;
 outlets = 3;
 
 setinletassist( 0, "Grid Input" );
 setinletassist( 1, "Matrix Input" );
 setinletassist( 2, "Variable Brightness" );
-setinletassist( 3, "Init" );
-setinletassist( 4, "Live Observed" );
+setinletassist( 3, "VU Meters" );
+setinletassist( 4, "Init" );
+setinletassist( 5, "Live Observed" );
 
 setoutletassist( 0, "Grid Output" );
 setoutletassist( 1, "Matrix Output" );
@@ -30,7 +31,9 @@ var gridPrefix = "/monome";
 var gridConnectionStatus = 0;
 var gridWidth = 16;
 var gridHeight = 16;
+
 var varibright = 1;
+var vuMeters = 1;
 
 var ledArray = 0;
 
@@ -39,13 +42,16 @@ var liveApiNonObserving = 0;
 var numberOfTracks = 0;
 var numberOfScenes = 0;
 var metronomeState = 0;
+var isPlayingState = 0;
 var playingSlotIndexArray = 0;
 var firedSlotIndexArray = 0;
 var levelArray = 0;
 var clipsArray = 0;
 
+var fastBeatPulse = 0.0;
+var slowBeatPulse = 0.0;
+
 var keyDownArray = 0;
-var scrollOffsetX = 0;
 var scrollOffsetY = 0;
 
 
@@ -55,7 +61,6 @@ function init() {
 
 	post( "init clips.js \n" );
 
-	scrollOffsetX = 0;
 	scrollOffsetY = 0;
 
 	// Init led and key down arrays
@@ -89,7 +94,7 @@ function init() {
 
 	initDone = 1;
 
-	readClipSlots();
+	updateClips();
 
 	redrawTask.interval = 1000 / 30; //30fps
 	redrawTask.repeat();
@@ -134,6 +139,7 @@ function anything() {
 
 		gridConnectionStatus = 1;
 		clearGrid();
+		redrawIsDirty = 1;
 		
 		post( "clips.js Connected", gridWidth, gridHeight, "\n" );
 
@@ -150,14 +156,22 @@ function anything() {
 		varibright = arguments[0];
 		redrawIsDirty = 1;
 
-	// Init
+	// Vu Meters
 	} else if( inlet == 3 ) {
+		vuMeters = arguments[0];
+		redrawIsDirty = 1;
+
+	// Init
+	} else if( inlet == 4 ) {
 		init();
 	
 	// Live Observed
-	} else if( inlet == 4 ) {
+	} else if( inlet == 5 ) {
 		
-		if( messagename === "tracks" ) {
+		if( messagename === "update_clips" ) {
+			updateClips();
+
+		} else if( messagename === "tracks" ) {
 			updateNumberOfTracks( arguments[0] );
 
 		} else if( messagename === "scenes" ) {
@@ -168,9 +182,9 @@ function anything() {
 
 			updateMetronome( arguments[0] );
 
-		} else if( messagename === "detail_clip_changed" ) {
+		} else if( messagename === "is_playing" ) {
 
-			updateClips();
+			updateIsPlaying( arguments[0] );
 
 		} else if( messagename === "track" ) {
 
@@ -185,14 +199,12 @@ function anything() {
 
 			} else if( arguments[1] === "clip_slots" ) {
 				
-				var iOffset = 3;// + scrollOffsetY;
-				for( var i = 0; i < MAX_SCENES; i ++ ) {
-					var clip = 0;
-					if( i + iOffset < arguments.length ) {
-						clip = arguments[i + iOffset];
-					}
-					clipsArray[arguments[0]][i] = clip;
+				var iOffset = 3; // We ignore the first few bits of info in args
+				var clipsTrackArray = new Array( arguments.length - iOffset );
+				for( var i = iOffset; i < arguments.length; i ++ ) {
+					clipsTrackArray[i - iOffset] = arguments[i];
 				}
+				clipsArray[arguments[0]] = clipsTrackArray;
 
 				redrawIsDirty = 1;
 
@@ -233,6 +245,16 @@ updateMetronome.local = 1;
 function updateMetronome( state ) {
 
 	metronomeState = state;
+
+	redrawIsDirty = 1;
+}
+
+updateIsPlaying.local = 1;
+function updateIsPlaying( state ) {
+
+	isPlayingState = state;
+
+	redrawIsDirty = 1;
 }
 
 updatePlayingSlotIndex.local = 1;
@@ -240,8 +262,8 @@ function updatePlayingSlotIndex( trackIndex, slotIndex ) {
 
 	// First slot has index 0, -2 = track stopped, -1 = arranger recording with no session clip playing
 
-	if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
-		playingSlotIndexArray[trackIndex - scrollOffsetX] = slotIndex;
+	if( trackIndex < MAX_TRACKS ) {
+		playingSlotIndexArray[trackIndex] = slotIndex;
 	}
 
 	redrawIsDirty = 1;
@@ -252,8 +274,8 @@ function updateFiredSlotIndex( trackIndex, slotIndex ) {
 
 	// First slot has index 0, -1 = no slot fired, -2 = track stop button fired
 	
-	if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
-		firedSlotIndexArray[trackIndex - scrollOffsetX] = slotIndex;
+	if( trackIndex < MAX_TRACKS ) {
+		firedSlotIndexArray[trackIndex] = slotIndex;
 	}
 
 	redrawIsDirty = 1;
@@ -262,8 +284,8 @@ function updateFiredSlotIndex( trackIndex, slotIndex ) {
 updateLevel.local = 1;
 function updateLevel( trackIndex, level ) {
 
-	if( trackIndex - scrollOffsetX < MAX_TRACKS ) {
-		levelArray[trackIndex - scrollOffsetX] = level;
+	if( trackIndex < MAX_TRACKS ) {
+		levelArray[trackIndex] = level;
 	}
 
 	redrawIsDirty = 1;
@@ -272,49 +294,9 @@ function updateLevel( trackIndex, level ) {
 updateClips.local = 1;
 function updateClips() {
 
-	readClipSlots();
-	// readPlayingSlotIndexes();
-	// readFiredSlotIndexes();
-}
-
-readClipSlots.local = 1;
-function readClipSlots() {
-
+	// post( "Update Clips\n" );
 	outlet( 2, numberOfTracks, scrollOffsetY ); // Send numberOfTracks so as to not mess with APIs outside of that
-
 }
-
-// readPlayingSlotIndexes.local = 1;
-// function readPlayingSlotIndexes() {
-
-// 	for( var x = 0; x < MAX_TRACKS; x ++ ) {
-
-// 		if( x + scrollOffsetX < numberOfTracks ) {
-// 			liveApiTrackPlayingSlotIndexArray[x].path = "live_set visible_tracks " + ( x + scrollOffsetX );
-// 			playingSlotIndexArray[x] = liveApiTrackPlayingSlotIndexArray[x].get( "playing_slot_index" );
-// 		} else {
-// 			playingSlotIndexArray[x] = -2;
-// 		}
-// 	}
-
-// 	redrawIsDirty = 1;
-// }
-
-// readFiredSlotIndexes.local = 1;
-// function readFiredSlotIndexes() {
-
-// 	for( var x = 0; x < MAX_TRACKS; x ++ ) {
-
-// 		if( x + scrollOffsetX < numberOfTracks ) {
-// 			liveApiTrackFiredSlotIndexArray[x].path = "live_set visible_tracks " + ( x + scrollOffsetX );
-// 			firedSlotIndexArray[x] = liveApiTrackFiredSlotIndexArray[x].get( "fired_slot_index" );
-// 		} else {
-// 			firedSlotIndexArray[x] = -1;
-// 		}
-// 	}
-
-// 	redrawIsDirty = 1;
-// }
 
 
 keyPress.local = 1;
@@ -333,7 +315,7 @@ function keyPress( x, y, down ) {
 			// Clip
 			if( x < MAX_TRACKS && x < numberOfTracks ) {
 
-				liveApiNonObserving.path = "live_set visible_tracks " + ( x + scrollOffsetX ) + " clip_slots " + ( y + scrollOffsetY );
+				liveApiNonObserving.path = "live_set visible_tracks " + x + " clip_slots " + ( y + scrollOffsetY );
 				liveApiNonObserving.call( "fire" );
 
 			// Scene
@@ -351,7 +333,7 @@ function keyPress( x, y, down ) {
 			// Stop track
 			if( x < MAX_TRACKS && x < numberOfTracks ) {
 
-				liveApiNonObserving.path = "live_set visible_tracks " + ( x + scrollOffsetX );
+				liveApiNonObserving.path = "live_set visible_tracks " + x;
 				liveApiNonObserving.call( "stop_all_clips" );
 
 			// Stop all
@@ -437,28 +419,21 @@ function keyPress( x, y, down ) {
 
 				// TODO
 
-			// Scroll left
+			// Placeholder
 			} else if( x == gridWidth - 4 ) {
 
-				if( scrollOffsetX > 0 ) {
-					scrollOffsetX --;
-					updateClips();
-				}
+				// TODO
 
-			// Scroll right
+			// Refresh
 			} else if( x == gridWidth - 3 ) {
 
-				if( numberOfTracks - scrollOffsetX > gridWidth - 2 ) {
-					scrollOffsetX ++;
-					updateClips();
-				}
+				updateClips();
 
 			// Scroll up
 			} else if( x == gridWidth - 2 ) {
 
 				if( scrollOffsetY > 0 ) {
 					scrollOffsetY --;
-					updateClips();
 				}
 
 			// Scroll down
@@ -466,7 +441,6 @@ function keyPress( x, y, down ) {
 
 				if( numberOfScenes - scrollOffsetY > gridHeight - 3 ) {
 					scrollOffsetY ++;
-					updateClips();
 				}
 
 			}
@@ -478,6 +452,8 @@ function keyPress( x, y, down ) {
 
 		keyDownArray[x][y] = 0;
 	}
+
+	redrawIsDirty = 1;
 
 }
 
@@ -500,15 +476,25 @@ function drawGrid() {
 	if( !initDone )
 		return;
 
-	// if( !redrawIsDirty )
-	// 	return;
+	// Check if we need to redraw when playing is stopped
+	if( isPlayingState || fastBeatPulse != 1.0 || slowBeatPulse != 1.0 )
+		redrawIsDirty = 1;
 
+	if( !redrawIsDirty )
+		return;
+
+	// post( "drawGrid()\n" );
 
 	// Get song_time for pulsing
-	liveApiNonObserving.path = "live_set";
-	var currentSongBeat = liveApiNonObserving.get( "current_song_time" );
-	var fastBeatPulse = 1.0 - ( currentSongBeat % 1 );
-	var slowBeatPulse = 1.0 - ( ( currentSongBeat * 0.5 ) % 1 );
+	if( isPlayingState ) {
+		liveApiNonObserving.path = "live_set";
+		var currentSongBeat = liveApiNonObserving.get( "current_song_time" );
+		fastBeatPulse = 1.0 - ( currentSongBeat % 1 );
+		slowBeatPulse = 1.0 - ( ( currentSongBeat * 0.5 ) % 1 );
+	} else {
+		fastBeatPulse = 1.0;
+		slowBeatPulse = 1.0;
+	}
 
 	var vuMeterRange = gridHeight - 2;
 
@@ -523,7 +509,7 @@ function drawGrid() {
 				ledValue = 15;
 
 			// Draw clips
-			} else if( x < MAX_TRACKS && x < numberOfTracks - scrollOffsetX && y < gridHeight - 2 ) {
+			} else if( x < MAX_TRACKS && x < numberOfTracks && y < gridHeight - 2 ) {
 
 				// Playing clip
 				if( playingSlotIndexArray[x] == y + scrollOffsetY ) {
@@ -534,11 +520,11 @@ function drawGrid() {
 					ledValue = Math.round( 15.0 * fastBeatPulse );
 					
 				// Stopped clip
-				} else if( clipsArray[x][y] == 1 ) {
+				} else if( clipsArray[x][y + scrollOffsetY] == 1 ) {
 					ledValue = 8;
 
 				// Draw VU meters
-				} else {
+				} else if( vuMeters ) {
 					var vuMeterHeight = Math.round( Math.pow( levelArray[x], 2 ) * vuMeterRange ); // Used pow to put a curve on the meter
 					if( vuMeterRange - vuMeterHeight < y + 1 ) {
 						ledValue = 2;
@@ -546,7 +532,7 @@ function drawGrid() {
 				}
 			
 			// Draw track stops
-			} else if( x < MAX_TRACKS && x < numberOfTracks - scrollOffsetX && y == gridHeight - 2 ) {
+			} else if( x < MAX_TRACKS && x < numberOfTracks && y == gridHeight - 2 ) {
 
 				// Stopping
 				if( firedSlotIndexArray[x] == -2 ) {
@@ -601,6 +587,8 @@ function drawGrid() {
 
 	// Output for matrixctl
 	outlet( 1, ledList );
+
+	redrawIsDirty = 0;
 
 	if( !gridConnectionStatus )
 		return;
