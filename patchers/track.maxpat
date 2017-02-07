@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 572.0, 79.0, 1078.0, 1233.0 ],
+		"rect" : [ 201.0, 79.0, 1078.0, 1233.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -225,12 +225,13 @@
 					"fontname" : "Arial Bold",
 					"fontsize" : 10.0,
 					"id" : "obj-11",
+					"linecount" : 2,
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 234.5, 689.5, 187.0, 18.0 ],
+					"patching_rect" : [ 234.5, 687.5, 187.0, 29.0 ],
 					"style" : "",
-					"text" : "Launchd doesn't have this deferlow",
+					"text" : "Launchd doesn't have this deferlow\n(currently it breaks stuff)",
 					"textcolor" : [ 0.3, 0.34, 0.4, 1.0 ]
 				}
 
@@ -365,9 +366,9 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 732.75, 968.0, 108.0, 22.0 ],
+					"patching_rect" : [ 732.75, 966.0, 57.0, 22.0 ],
 					"style" : "",
-					"text" : "setcell2d #1 14 $1"
+					"text" : "#1 14 $1"
 				}
 
 			}
@@ -443,27 +444,14 @@
 			}
 , 			{
 				"box" : 				{
-					"id" : "obj-86",
-					"maxclass" : "newobj",
-					"numinlets" : 1,
-					"numoutlets" : 2,
-					"outlettype" : [ "bang", "int" ],
-					"patching_rect" : [ 770.75, 838.0, 30.0, 22.0 ],
-					"style" : "",
-					"text" : "t b i"
-				}
-
-			}
-, 			{
-				"box" : 				{
 					"id" : "obj-64",
 					"maxclass" : "newobj",
-					"numinlets" : 2,
+					"numinlets" : 3,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "" ],
 					"patching_rect" : [ 732.75, 880.0, 195.0, 22.0 ],
 					"style" : "",
-					"text" : "if $i1 == -2 then $i2 else out2 bang"
+					"text" : "if $i2 == -2 then $i3 else out2 bang"
 				}
 
 			}
@@ -574,7 +562,7 @@
 					"numoutlets" : 0,
 					"patching_rect" : [ 166.25, 1441.0, 136.5, 18.0 ],
 					"style" : "",
-					"text" : "Create message for matrix",
+					"text" : "Create message",
 					"textcolor" : [ 0.3, 0.34, 0.4, 1.0 ]
 				}
 
@@ -630,9 +618,9 @@
 					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 86.75, 1472.0, 122.0, 22.0 ],
+					"patching_rect" : [ 86.75, 1472.0, 71.0, 22.0 ],
 					"style" : "",
-					"text" : "prepend setcell2d #1"
+					"text" : "prepend #1"
 				}
 
 			}
@@ -1247,6 +1235,15 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-64", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-1", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-40", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
@@ -1409,7 +1406,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-64", 0 ],
+					"destination" : [ "obj-64", 1 ],
 					"disabled" : 0,
 					"hidden" : 0,
 					"source" : [ "obj-21", 0 ]
@@ -1607,7 +1604,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-86", 0 ],
+					"destination" : [ "obj-88", 1 ],
 					"disabled" : 0,
 					"hidden" : 0,
 					"source" : [ "obj-37", 0 ]
@@ -2003,24 +2000,6 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-64", 0 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"source" : [ "obj-86", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-88", 1 ],
-					"disabled" : 0,
-					"hidden" : 0,
-					"source" : [ "obj-86", 1 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-41", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
@@ -2039,7 +2018,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-64", 1 ],
+					"destination" : [ "obj-64", 2 ],
 					"disabled" : 0,
 					"hidden" : 0,
 					"source" : [ "obj-89", 0 ]
