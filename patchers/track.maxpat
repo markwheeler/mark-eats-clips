@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 146.0, 79.0, 1261.0, 1233.0 ],
+		"rect" : [ 151.0, 79.0, 1261.0, 893.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -38,6 +38,19 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
+					"id" : "obj-39",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 424.0, 212.0, 45.0, 22.0 ],
+					"style" : "",
+					"text" : "zlclear"
+				}
+
+			}
+, 			{
+				"box" : 				{
 					"id" : "obj-123",
 					"maxclass" : "newobj",
 					"numinlets" : 2,
@@ -58,7 +71,6 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 155.583252, 1300.0, 147.166748, 18.0 ],
-					"presentation_rect" : [ 156.0, 1299.0, 0.0, 0.0 ],
 					"style" : "",
 					"text" : "Draw VU meter",
 					"textcolor" : [ 0.3, 0.34, 0.4, 1.0 ]
@@ -74,7 +86,6 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 168.0, 1502.0, 147.166748, 18.0 ],
-					"presentation_rect" : [ 169.916626, 1500.0, 0.0, 0.0 ],
 					"style" : "",
 					"text" : "VU meter brightness",
 					"textcolor" : [ 0.3, 0.34, 0.4, 1.0 ]
@@ -130,7 +141,7 @@
 					"outlettype" : [ "int" ],
 					"patching_rect" : [ 127.25, 1500.0, 29.5, 22.0 ],
 					"style" : "",
-					"text" : "* 2"
+					"text" : "* 3"
 				}
 
 			}
@@ -237,7 +248,6 @@
 					"numinlets" : 1,
 					"numoutlets" : 0,
 					"patching_rect" : [ 167.0, 986.0, 150.0, 18.0 ],
-					"presentation_rect" : [ 616.0, 1072.0, 0.0, 0.0 ],
 					"style" : "",
 					"text" : "Pad with zeros",
 					"textcolor" : [ 0.3, 0.34, 0.4, 1.0 ]
@@ -558,7 +568,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 824.75, 619.0, 50.0, 22.0 ],
 					"style" : "",
-					"text" : "2"
+					"text" : "-2"
 				}
 
 			}
@@ -632,7 +642,6 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-68",
-					"int" : 1,
 					"maxclass" : "gswitch2",
 					"numinlets" : 2,
 					"numoutlets" : 2,
@@ -2088,6 +2097,15 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-31", 1 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-39", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-54", 0 ],
 					"disabled" : 0,
 					"hidden" : 0,
@@ -2227,6 +2245,15 @@
 					"disabled" : 0,
 					"hidden" : 0,
 					"source" : [ "obj-55", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-39", 0 ],
+					"disabled" : 0,
+					"hidden" : 0,
+					"source" : [ "obj-56", 0 ]
 				}
 
 			}
