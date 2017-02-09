@@ -9,7 +9,7 @@
 			"modernui" : 1
 		}
 ,
-		"rect" : [ 801.0, 489.0, 1271.0, 742.0 ],
+		"rect" : [ 225.0, 157.0, 1271.0, 742.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -70,7 +70,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 472.0, 533.0, 29.5, 22.0 ],
 					"style" : "",
-					"text" : "10"
+					"text" : "5"
 				}
 
 			}
@@ -376,7 +376,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 146.75, 2272.0, 75.0, 22.0 ],
 					"style" : "",
-					"text" : "4"
+					"text" : "0"
 				}
 
 			}
@@ -917,7 +917,7 @@
 					"outlettype" : [ "" ],
 					"patching_rect" : [ 926.416748, 902.0, 50.0, 22.0 ],
 					"style" : "",
-					"text" : "3"
+					"text" : "-1"
 				}
 
 			}
@@ -991,7 +991,6 @@
 , 			{
 				"box" : 				{
 					"id" : "obj-68",
-					"int" : 1,
 					"maxclass" : "gswitch2",
 					"numinlets" : 2,
 					"numoutlets" : 2,
@@ -1344,7 +1343,7 @@
 					"maxclass" : "comment",
 					"numinlets" : 1,
 					"numoutlets" : 0,
-					"patching_rect" : [ 31.0, 228.5, 219.0, 29.0 ],
+					"patching_rect" : [ 31.0, 228.5, 220.0, 29.0 ],
 					"style" : "",
 					"text" : "When this track isn't needed, set the path to track 0 just so it has somewhere valid.",
 					"textcolor" : [ 0.3, 0.34, 0.4, 1.0 ]
