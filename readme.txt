@@ -1,7 +1,6 @@
 Mark Eats Clips
 ---------------
 
-
 Ableton Live clip launcher for monome grids.
 
 This is a Max for Live device. Save it into your Ableton User Library and add it to any track in a Live Set.
