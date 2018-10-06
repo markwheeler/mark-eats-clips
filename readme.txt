@@ -1,5 +1,4 @@
-Mark Eats Clips
----------------
+# Mark Eats Clips
 
 Ableton Live clip launcher for monome grids.
 
